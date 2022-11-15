@@ -1,5 +1,5 @@
-// Aluno: Charles Bezerra de Oliveira Júnior - 119110595
-// Roteiro 3
+// Charles Bezerra de Oliveira Júnior - 119110595
+// Roteiro 4 - Problema 1
 
 parameter divide_by=100000000;  // divisor do clock de referência
 // A frequencia do clock de referencia é 50 MHz.
@@ -15,7 +15,7 @@ module top(input  logic clk_2,
            output logic [NBITS_INSTR-1:0] lcd_instruction,
            output logic [NBITS_TOP-1:0] lcd_registrador [0:NREGS_TOP-1],
            output logic [NBITS_TOP-1:0] lcd_pc, lcd_SrcA, lcd_SrcB,
-             lcd_ALUResult, lcd_Result, lcd_WriteData, lcd_ReadData, 
+             lcd_ALUResult, lcd_Result, lcd_WriteData, lcd_ReadData,
            output logic lcd_MemWrite, lcd_Branch, lcd_MemtoReg, lcd_RegWrite);
 
   always_comb begin
@@ -39,37 +39,30 @@ module top(input  logic clk_2,
     lcd_b <= {SWI, 56'hFEDCBA09876543};
   end
 
-  logic [3:0] operation;
-  logic [2:0] A, B;
-  logic [1:0] F;
+  logic serial_data_in;
+  logic [3:0] parallel_data_in;
+  logic [3:0] data_out;
+  logic reset;
+  logic choose;
 
-  always_comb begin
-    A <= SWI[7:5];
-    B <= SWI[2:0];
-    F <= SWI[4:3];
+  always_comb reset <= SWI[1];
+  always_comb choose <= SWI[2];
+  always_comb serial_data_in <= SWI[3];
+  always_comb parallel_data_in <= SWI[7:4];
+  
+  always_ff @(posedge reset or posedge clk_2) begin
+    if (reset)
+      data_out <= 0;
+    else if (choose) 
+      data_out <= parallel_data_in;
+    else begin
+      data_out[3] <= serial_data_in;
+      data_out[2] <= data_out[3];
+      data_out[1] <= data_out[2];
+      data_out[0] <= data_out[1];
+    end
+  end 
 
-    case (F)
-      2'b00: operation[3:0] <= A + B;
-      2'b01: operation[3:0] <= A - B;
-      2'b10: operation[3:0] <= A & B;
-      default: operation[3:0] <= A | B;
-    endcase
-
-    {LED[7], LED[2:0]} <= operation;
-  end
-
-  always_comb begin
-    case (LED[2:0])
-      3'b000: SEG <= 8'b00111111;
-      3'b001: SEG <= 8'b00000110;
-      3'b010: SEG <= 8'b01011011;
-      3'b011: SEG <= 8'b01001111;
-      3'b100: SEG <= 8'b11100110;
-      3'b101: SEG <= 8'b11001111;
-      3'b110: SEG <= 8'b11011011;
-      3'b111: SEG <= 8'b10000110;
-      default: SEG <= 8'b00000000;
-    endcase
-  end
-
+  always_comb LED[0] <= clk_2;
+  always_comb LED[7:4] <= data_out;
 endmodule

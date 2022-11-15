@@ -1,5 +1,5 @@
-// Aluno: Charles Bezerra de Oliveira Júnior - 119110595
-// Roteiro 3
+// Charles Bezerra de Oliveira Júnior - 119110595
+// Roteiro 4 - Problema 2
 
 parameter divide_by=100000000;  // divisor do clock de referência
 // A frequencia do clock de referencia é 50 MHz.
@@ -7,6 +7,7 @@ parameter divide_by=100000000;  // divisor do clock de referência
 
 parameter NBITS_INSTR = 32;
 parameter NBITS_TOP = 8, NREGS_TOP = 32, NBITS_LCD = 64;
+
 module top(input  logic clk_2,
            input  logic [NBITS_TOP-1:0] SWI,
            output logic [NBITS_TOP-1:0] LED,
@@ -39,37 +40,25 @@ module top(input  logic clk_2,
     lcd_b <= {SWI, 56'hFEDCBA09876543};
   end
 
-  logic [3:0] operation;
-  logic [2:0] A, B;
-  logic [1:0] F;
+  parameter ADDR_WiDTH = 2; 
+  parameter DATA_WiDTH = 4;
 
-  always_comb begin
-    A <= SWI[7:5];
-    B <= SWI[2:0];
-    F <= SWI[4:3];
+  logic readOrWrite;
+  logic [1:0] address;
+  logic [3:0] data_in, data_out;
+  logic [DATA_WiDTH-1:0] mem [ADDR_WiDTH**2-1:0];
 
-    case (F)
-      2'b00: operation[3:0] <= A + B;
-      2'b01: operation[3:0] <= A - B;
-      2'b10: operation[3:0] <= A & B;
-      default: operation[3:0] <= A | B;
-    endcase
+  always_comb readOrWrite <= SWI[1];
+  always_comb address <= SWI[3:2];
+  always_comb data_in <= SWI[7:4];
 
-    {LED[7], LED[2:0]} <= operation;
+  always_ff @(posedge clk_2) begin
+    if (readOrWrite)
+      mem[address] <= data_in;
+    else 
+      data_out <= mem[address]; 
   end
 
-  always_comb begin
-    case (LED[2:0])
-      3'b000: SEG <= 8'b00111111;
-      3'b001: SEG <= 8'b00000110;
-      3'b010: SEG <= 8'b01011011;
-      3'b011: SEG <= 8'b01001111;
-      3'b100: SEG <= 8'b11100110;
-      3'b101: SEG <= 8'b11001111;
-      3'b110: SEG <= 8'b11011011;
-      3'b111: SEG <= 8'b10000110;
-      default: SEG <= 8'b00000000;
-    endcase
-  end
-
+  always_comb LED[7:4] <= data_out;
+  always_comb LED[0] <= clk_2;
 endmodule
